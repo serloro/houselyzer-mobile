@@ -1,0 +1,472 @@
+import React, { useState, useMemo } from 'react';
+import { View, ScrollView, StyleSheet } from 'react-native';
+import { Text, Card, TextInput, Button, SegmentedButtons, Chip } from 'react-native-paper';
+import { Slider } from '@react-native-community/slider';
+import { useStore } from '../store/useStore';
+import { useTranslation } from '../utils/translations';
+import { calculateMortgage, formatCurrency } from '../utils/calculations';
+
+export const MortgageCalculator: React.FC = () => {
+  const { settings } = useStore();
+  const t = useTranslation(settings.language);
+  
+  const [homePrice, setHomePrice] = useState(settings.currency === 'EUR' ? 400000 : 500000);
+  const [downPayment, setDownPayment] = useState(20);
+  const [loanTerm, setLoanTerm] = useState(settings.defaultLoanTerm);
+  const [propertyTax, setPropertyTax] = useState(settings.currency === 'EUR' ? 4000 : 6000);
+  const [insurance, setInsurance] = useState(settings.currency === 'EUR' ? 800 : 1200);
+
+  const mortgageTypes = useMemo(() => {
+    if (settings.currency === 'EUR') {
+      return [
+        { 
+          id: 'fixed', 
+          name: t('fixedMortgage'), 
+          rate: 2.50, 
+          description: `2,50% ${t('fixedRateDescription')}`,
+          color: '#10B981'
+        },
+        { 
+          id: 'variable', 
+          name: t('variableMortgage'), 
+          rate: 4.12,
+          description: `${t('euribor')} + 0,49% (${t('currently')} 4,12%)`,
+          color: '#F59E0B'
+        },
+        { 
+          id: 'mixed', 
+          name: t('mixedMortgage'), 
+          rate: 1.75, 
+          description: `1,75% ${t('mixedRateDescription')}`,
+          color: '#8B5CF6'
+        }
+      ];
+    } else {
+      return [
+        { 
+          id: 'fixed', 
+          name: t('fixedMortgage'), 
+          rate: 6.50, 
+          description: `6.50% ${t('fixedRateDescription')}`,
+          color: '#10B981'
+        },
+        { 
+          id: 'variable', 
+          name: t('variableMortgage'), 
+          rate: 6.25, 
+          description: `${t('variableRateDescription')} 6.25%`,
+          color: '#F59E0B'
+        },
+        { 
+          id: 'mixed', 
+          name: t('mixedMortgage'), 
+          rate: 5.75, 
+          description: `5.75% ${t('mixedRateDescription')}`,
+          color: '#8B5CF6'
+        }
+      ];
+    }
+  }, [settings.currency, t]);
+
+  const [selectedMortgageType, setSelectedMortgageType] = useState(mortgageTypes[0].id);
+
+  const currentMortgageType = mortgageTypes.find(mt => mt.id === selectedMortgageType) || mortgageTypes[0];
+
+  const mortgageCalculations = useMemo(() => {
+    return mortgageTypes.map(type => ({
+      ...type,
+      calculation: calculateMortgage(
+        homePrice,
+        downPayment,
+        type.rate,
+        loanTerm,
+        propertyTax,
+        insurance
+      )
+    }));
+  }, [homePrice, downPayment, loanTerm, propertyTax, insurance, mortgageTypes]);
+
+  const selectedCalculation = mortgageCalculations.find(mc => mc.id === selectedMortgageType)?.calculation;
+
+  const loanTermOptions = [
+    { value: '15', label: `15 ${t('years')}` },
+    { value: '20', label: `20 ${t('years')}` },
+    { value: '25', label: `25 ${t('years')}` },
+    { value: '30', label: `30 ${t('years')}` },
+  ];
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text variant="bodyMedium" style={styles.subtitle}>{t('calculatePayments')}</Text>
+      </View>
+
+      {/* Input Form */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <Text variant="titleMedium" style={styles.sectionTitle}>{t('loanDetails')}</Text>
+          
+          <TextInput
+            label={t('homePrice')}
+            value={homePrice.toString()}
+            onChangeText={(text) => setHomePrice(Number(text) || 0)}
+            keyboardType="numeric"
+            mode="outlined"
+            style={styles.input}
+            left={<TextInput.Icon icon="currency-usd" />}
+          />
+
+          <View style={styles.sliderContainer}>
+            <Text variant="bodyMedium" style={styles.sliderLabel}>
+              {t('downPayment')} ({downPayment}%)
+            </Text>
+            <Slider
+              style={styles.slider}
+              minimumValue={5}
+              maximumValue={30}
+              step={0.5}
+              value={downPayment}
+              onValueChange={setDownPayment}
+              minimumTrackTintColor="#2563eb"
+              maximumTrackTintColor="#e5e7eb"
+              thumbStyle={{ backgroundColor: '#2563eb' }}
+            />
+            <Text variant="bodySmall" style={styles.sliderValue}>
+              {formatCurrency((homePrice * downPayment) / 100, settings.currency)}
+            </Text>
+          </View>
+
+          <View style={styles.mortgageTypeContainer}>
+            <Text variant="bodyMedium" style={styles.sectionLabel}>{t('mortgageType')}</Text>
+            {mortgageTypes.map((type) => (
+              <Card
+                key={type.id}
+                style={[
+                  styles.mortgageTypeCard,
+                  selectedMortgageType === type.id && styles.selectedMortgageType
+                ]}
+                onPress={() => setSelectedMortgageType(type.id)}
+              >
+                <Card.Content style={styles.mortgageTypeContent}>
+                  <View style={styles.mortgageTypeInfo}>
+                    <Text variant="titleSmall">{type.name}</Text>
+                    <Text variant="bodySmall" style={styles.mortgageTypeDescription}>
+                      {type.description}
+                    </Text>
+                  </View>
+                  <View style={styles.mortgageTypeRate}>
+                    <Text variant="titleMedium" style={{ color: type.color }}>
+                      {type.rate}%
+                    </Text>
+                    <Text variant="bodySmall" style={styles.mortgageTypeLabel}>TIN</Text>
+                  </View>
+                </Card.Content>
+              </Card>
+            ))}
+          </View>
+
+          <View style={styles.segmentedContainer}>
+            <Text variant="bodyMedium" style={styles.sectionLabel}>
+              {t('loanTerm')} ({t('years')})
+            </Text>
+            <SegmentedButtons
+              value={loanTerm.toString()}
+              onValueChange={(value) => setLoanTerm(Number(value))}
+              buttons={loanTermOptions}
+              style={styles.segmentedButtons}
+            />
+          </View>
+
+          <View style={styles.row}>
+            <TextInput
+              label={`${t('propertyTax')} (${t('annual')})`}
+              value={propertyTax.toString()}
+              onChangeText={(text) => setPropertyTax(Number(text) || 0)}
+              keyboardType="numeric"
+              mode="outlined"
+              style={[styles.input, styles.halfWidth]}
+            />
+            <TextInput
+              label={`${t('insurance')} (${t('annual')})`}
+              value={insurance.toString()}
+              onChangeText={(text) => setInsurance(Number(text) || 0)}
+              keyboardType="numeric"
+              mode="outlined"
+              style={[styles.input, styles.halfWidth]}
+            />
+          </View>
+        </Card.Content>
+      </Card>
+
+      {/* Results */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <Text variant="titleMedium" style={styles.sectionTitle}>{t('monthlyPayment')}</Text>
+          <View style={styles.resultContainer}>
+            <Text variant="displaySmall" style={styles.monthlyPayment}>
+              {selectedCalculation ? formatCurrency(selectedCalculation.monthlyPayment, settings.currency) : '---'}
+            </Text>
+            <Text variant="bodyMedium" style={styles.resultSubtitle}>{t('totalMonthlyPayment')}</Text>
+            <Text variant="bodySmall" style={styles.resultDetails}>
+              {currentMortgageType.name} • {currentMortgageType.rate}% TIN
+            </Text>
+          </View>
+        </Card.Content>
+      </Card>
+
+      {selectedCalculation && (
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.sectionTitle}>{t('loanSummary')}</Text>
+            <View style={styles.summaryContainer}>
+              <View style={styles.summaryRow}>
+                <Text variant="bodyMedium" style={styles.summaryLabel}>{t('loanAmount')}:</Text>
+                <Text variant="bodyMedium" style={styles.summaryValue}>
+                  {formatCurrency(selectedCalculation.loanAmount, settings.currency)}
+                </Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text variant="bodyMedium" style={styles.summaryLabel}>{t('totalInterest')}:</Text>
+                <Text variant="bodyMedium" style={styles.summaryValue}>
+                  {formatCurrency(selectedCalculation.totalInterest, settings.currency)}
+                </Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text variant="bodyMedium" style={styles.summaryLabel}>{t('totalPayment')}:</Text>
+                <Text variant="bodyMedium" style={styles.summaryValue}>
+                  {formatCurrency(selectedCalculation.totalPayment, settings.currency)}
+                </Text>
+              </View>
+              {selectedCalculation.pmi > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text variant="bodyMedium" style={styles.summaryLabel}>PMI ({t('monthly')}):</Text>
+                  <Text variant="bodyMedium" style={styles.summaryValue}>
+                    {formatCurrency(selectedCalculation.pmi, settings.currency)}
+                  </Text>
+                </View>
+              )}
+            </View>
+            
+            <View style={styles.benefitsContainer}>
+              <Text variant="bodySmall" style={styles.benefitText}>
+                ✓ {t('noOpeningFees')}
+              </Text>
+              <Text variant="bodySmall" style={styles.benefitText}>
+                ✓ {t('noEarlyPaymentFees')}
+              </Text>
+            </View>
+          </Card.Content>
+        </Card>
+      )}
+
+      {/* Comparison */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <Text variant="titleMedium" style={styles.sectionTitle}>{t('mortgageComparison')}</Text>
+          {mortgageCalculations.map((mc) => (
+            <Card key={mc.id} style={styles.comparisonCard}>
+              <Card.Content>
+                <View style={styles.comparisonHeader}>
+                  <Text variant="titleSmall">{mc.name}</Text>
+                  <View style={styles.comparisonRate}>
+                    <View style={[styles.colorIndicator, { backgroundColor: mc.color }]} />
+                    <Text variant="bodySmall" style={{ color: mc.color }}>
+                      {mc.rate}%
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.comparisonStats}>
+                  <View style={styles.comparisonStat}>
+                    <Text variant="bodySmall" style={styles.comparisonLabel}>{t('monthlyPayment')}:</Text>
+                    <Text variant="bodyMedium" style={styles.comparisonValue}>
+                      {formatCurrency(mc.calculation.monthlyPayment, settings.currency)}
+                    </Text>
+                  </View>
+                  <View style={styles.comparisonStat}>
+                    <Text variant="bodySmall" style={styles.comparisonLabel}>{t('totalInterest')}:</Text>
+                    <Text variant="bodyMedium" style={styles.comparisonValue}>
+                      {formatCurrency(mc.calculation.totalInterest, settings.currency)}
+                    </Text>
+                  </View>
+                </View>
+                {mc.id === 'mixed' && (
+                  <Text variant="bodySmall" style={styles.mixedNote}>
+                    * {t('afterFiveYears')}: {settings.currency === 'EUR' ? 'Euríbor + 0,65% (aprox. 4,28%)' : 'Variable rate applies'}
+                  </Text>
+                )}
+              </Card.Content>
+            </Card>
+          ))}
+        </Card.Content>
+      </Card>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  header: {
+    padding: 16,
+    backgroundColor: 'white',
+  },
+  subtitle: {
+    color: '#6b7280',
+  },
+  card: {
+    margin: 16,
+    marginTop: 0,
+  },
+  sectionTitle: {
+    marginBottom: 16,
+    fontWeight: 'bold',
+  },
+  sectionLabel: {
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  input: {
+    marginBottom: 16,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  halfWidth: {
+    flex: 1,
+  },
+  sliderContainer: {
+    marginBottom: 16,
+  },
+  sliderLabel: {
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderValue: {
+    textAlign: 'center',
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  mortgageTypeContainer: {
+    marginBottom: 16,
+  },
+  mortgageTypeCard: {
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  selectedMortgageType: {
+    borderColor: '#2563eb',
+    backgroundColor: '#eff6ff',
+  },
+  mortgageTypeContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  mortgageTypeInfo: {
+    flex: 1,
+  },
+  mortgageTypeDescription: {
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  mortgageTypeRate: {
+    alignItems: 'center',
+  },
+  mortgageTypeLabel: {
+    color: '#6b7280',
+    fontSize: 10,
+  },
+  segmentedContainer: {
+    marginBottom: 16,
+  },
+  segmentedButtons: {
+    marginTop: 8,
+  },
+  resultContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  monthlyPayment: {
+    color: '#2563eb',
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  resultSubtitle: {
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  resultDetails: {
+    color: '#6b7280',
+  },
+  summaryContainer: {
+    gap: 12,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  summaryLabel: {
+    color: '#6b7280',
+  },
+  summaryValue: {
+    fontWeight: '500',
+  },
+  benefitsContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  benefitText: {
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  comparisonCard: {
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  comparisonHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  comparisonRate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  colorIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  comparisonStats: {
+    gap: 8,
+  },
+  comparisonStat: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  comparisonLabel: {
+    color: '#6b7280',
+  },
+  comparisonValue: {
+    fontWeight: '500',
+  },
+  mixedNote: {
+    color: '#6b7280',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+});
