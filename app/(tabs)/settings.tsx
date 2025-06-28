@@ -1,14 +1,10 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Alert } from 'react-native';
 import { Text, Card, Switch, Button, Menu, Divider, Snackbar } from 'react-native-paper';
-import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
-import * as DocumentPicker from 'expo-document-picker';
-import { useStore } from '../store/useStore';
-import { useTranslation } from '../utils/translations';
+import { useStore } from '@/store/useStore';
+import { useTranslation } from '@/utils/translations';
 
-export const Settings: React.FC = () => {
+export default function SettingsTab() {
   const { settings, updateSettings, clearData, clearMarketDataCache } = useStore();
   const t = useTranslation(settings.language);
   const [languageMenuVisible, setLanguageMenuVisible] = useState(false);
@@ -52,50 +48,6 @@ export const Settings: React.FC = () => {
   const handleClearMarketCache = () => {
     clearMarketDataCache();
     showSnackbar(t('marketCacheCleared'));
-  };
-
-  const handleExportData = async () => {
-    try {
-      const data = {
-        properties: useStore.getState().properties,
-        favorites: useStore.getState().favorites,
-        settings: useStore.getState().settings,
-        marketData: useStore.getState().marketData,
-        exportDate: new Date().toISOString(),
-      };
-      
-      const jsonString = JSON.stringify(data, null, 2);
-      const fileName = `houselyzer-datos-${new Date().toISOString().split('T')[0]}.json`;
-      const fileUri = FileSystem.documentDirectory + fileName;
-      
-      await FileSystem.writeAsStringAsync(fileUri, jsonString);
-      
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri);
-        showSnackbar(t('dataExported'));
-      } else {
-        showSnackbar('Sharing not available on this device');
-      }
-    } catch (error) {
-      showSnackbar('Error exporting data');
-    }
-  };
-
-  const handleImportData = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/json',
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        const fileContent = await FileSystem.readAsStringAsync(result.assets[0].uri);
-        // In a real implementation, you would parse and validate the data
-        showSnackbar('¡Funcionalidad de importación lista! (Versión demo)');
-      }
-    } catch (error) {
-      showSnackbar('Error importing data');
-    }
   };
 
   const languages = [
@@ -205,66 +157,6 @@ export const Settings: React.FC = () => {
               </Menu>
             </View>
 
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text variant="bodyMedium">{t('measurementUnit')}</Text>
-              </View>
-              <Menu
-                visible={measurementMenuVisible}
-                onDismiss={() => setMeasurementMenuVisible(false)}
-                anchor={
-                  <Button
-                    mode="outlined"
-                    onPress={() => setMeasurementMenuVisible(true)}
-                    style={styles.menuButton}
-                  >
-                    {measurementUnits.find(m => m.value === settings.measurementUnit)?.label}
-                  </Button>
-                }
-              >
-                {measurementUnits.map((unit) => (
-                  <Menu.Item
-                    key={unit.value}
-                    onPress={() => {
-                      updateSettings({ measurementUnit: unit.value as 'sqft' | 'sqm' });
-                      setMeasurementMenuVisible(false);
-                    }}
-                    title={unit.label}
-                  />
-                ))}
-              </Menu>
-            </View>
-
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text variant="bodyMedium">{t('marketDataLocation')}</Text>
-              </View>
-              <Menu
-                visible={locationMenuVisible}
-                onDismiss={() => setLocationMenuVisible(false)}
-                anchor={
-                  <Button
-                    mode="outlined"
-                    onPress={() => setLocationMenuVisible(true)}
-                    style={styles.menuButton}
-                  >
-                    {locations.find(l => l.value === settings.marketDataLocation)?.label}
-                  </Button>
-                }
-              >
-                {locations.map((location) => (
-                  <Menu.Item
-                    key={location.value}
-                    onPress={() => {
-                      updateSettings({ marketDataLocation: location.value });
-                      setLocationMenuVisible(false);
-                    }}
-                    title={location.label}
-                  />
-                ))}
-              </Menu>
-            </View>
-
             <Divider style={styles.divider} />
 
             <View style={styles.settingRow}>
@@ -289,67 +181,12 @@ export const Settings: React.FC = () => {
           </Card.Content>
         </Card>
 
-        {/* Mortgage Calculator Defaults */}
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleMedium" style={styles.sectionTitle}>{t('mortgageDefaults')}</Text>
-            
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <Text variant="bodyMedium">{t('defaultLoanTerm')} ({t('years')})</Text>
-              </View>
-              <Menu
-                visible={loanTermMenuVisible}
-                onDismiss={() => setLoanTermMenuVisible(false)}
-                anchor={
-                  <Button
-                    mode="outlined"
-                    onPress={() => setLoanTermMenuVisible(true)}
-                    style={styles.menuButton}
-                  >
-                    {loanTerms.find(t => t.value === settings.defaultLoanTerm)?.label}
-                  </Button>
-                }
-              >
-                {loanTerms.map((term) => (
-                  <Menu.Item
-                    key={term.value}
-                    onPress={() => {
-                      updateSettings({ defaultLoanTerm: term.value });
-                      setLoanTermMenuVisible(false);
-                    }}
-                    title={term.label}
-                  />
-                ))}
-              </Menu>
-            </View>
-          </Card.Content>
-        </Card>
-
         {/* Data Management */}
         <Card style={styles.card}>
           <Card.Content>
             <Text variant="titleMedium" style={styles.sectionTitle}>{t('dataManagement')}</Text>
             
             <View style={styles.buttonGrid}>
-              <Button
-                mode="contained"
-                onPress={handleExportData}
-                style={styles.actionButton}
-                icon="download"
-              >
-                {t('exportData')}
-              </Button>
-
-              <Button
-                mode="contained"
-                onPress={handleImportData}
-                style={[styles.actionButton, { backgroundColor: '#10b981' }]}
-                icon="upload"
-              >
-                {t('importData')}
-              </Button>
-
               <Button
                 mode="contained"
                 onPress={handleClearMarketCache}
@@ -397,7 +234,7 @@ export const Settings: React.FC = () => {
       </Snackbar>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {

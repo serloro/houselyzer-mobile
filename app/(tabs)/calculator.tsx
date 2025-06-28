@@ -2,11 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Text, Card, TextInput, Button, SegmentedButtons, Chip } from 'react-native-paper';
 import { Slider } from '@react-native-community/slider';
-import { useStore } from '../store/useStore';
-import { useTranslation } from '../utils/translations';
-import { calculateMortgage, formatCurrency } from '../utils/calculations';
+import { useStore } from '@/store/useStore';
+import { useTranslation } from '@/utils/translations';
+import { calculateMortgage, formatCurrency } from '@/utils/calculations';
 
-export const MortgageCalculator: React.FC = () => {
+export default function CalculatorTab() {
   const { settings } = useStore();
   const t = useTranslation(settings.language);
   
@@ -136,35 +136,6 @@ export const MortgageCalculator: React.FC = () => {
             </Text>
           </View>
 
-          <View style={styles.mortgageTypeContainer}>
-            <Text variant="bodyMedium" style={styles.sectionLabel}>{t('mortgageType')}</Text>
-            {mortgageTypes.map((type) => (
-              <Card
-                key={type.id}
-                style={[
-                  styles.mortgageTypeCard,
-                  selectedMortgageType === type.id && styles.selectedMortgageType
-                ]}
-                onPress={() => setSelectedMortgageType(type.id)}
-              >
-                <Card.Content style={styles.mortgageTypeContent}>
-                  <View style={styles.mortgageTypeInfo}>
-                    <Text variant="titleSmall">{type.name}</Text>
-                    <Text variant="bodySmall" style={styles.mortgageTypeDescription}>
-                      {type.description}
-                    </Text>
-                  </View>
-                  <View style={styles.mortgageTypeRate}>
-                    <Text variant="titleMedium" style={{ color: type.color }}>
-                      {type.rate}%
-                    </Text>
-                    <Text variant="bodySmall" style={styles.mortgageTypeLabel}>TIN</Text>
-                  </View>
-                </Card.Content>
-              </Card>
-            ))}
-          </View>
-
           <View style={styles.segmentedContainer}>
             <Text variant="bodyMedium" style={styles.sectionLabel}>
               {t('loanTerm')} ({t('years')})
@@ -237,71 +208,13 @@ export const MortgageCalculator: React.FC = () => {
                   {formatCurrency(selectedCalculation.totalPayment, settings.currency)}
                 </Text>
               </View>
-              {selectedCalculation.pmi > 0 && (
-                <View style={styles.summaryRow}>
-                  <Text variant="bodyMedium" style={styles.summaryLabel}>PMI ({t('monthly')}):</Text>
-                  <Text variant="bodyMedium" style={styles.summaryValue}>
-                    {formatCurrency(selectedCalculation.pmi, settings.currency)}
-                  </Text>
-                </View>
-              )}
-            </View>
-            
-            <View style={styles.benefitsContainer}>
-              <Text variant="bodySmall" style={styles.benefitText}>
-                ✓ {t('noOpeningFees')}
-              </Text>
-              <Text variant="bodySmall" style={styles.benefitText}>
-                ✓ {t('noEarlyPaymentFees')}
-              </Text>
             </View>
           </Card.Content>
         </Card>
       )}
-
-      {/* Comparison */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>{t('mortgageComparison')}</Text>
-          {mortgageCalculations.map((mc) => (
-            <Card key={mc.id} style={styles.comparisonCard}>
-              <Card.Content>
-                <View style={styles.comparisonHeader}>
-                  <Text variant="titleSmall">{mc.name}</Text>
-                  <View style={styles.comparisonRate}>
-                    <View style={[styles.colorIndicator, { backgroundColor: mc.color }]} />
-                    <Text variant="bodySmall" style={{ color: mc.color }}>
-                      {mc.rate}%
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.comparisonStats}>
-                  <View style={styles.comparisonStat}>
-                    <Text variant="bodySmall" style={styles.comparisonLabel}>{t('monthlyPayment')}:</Text>
-                    <Text variant="bodyMedium" style={styles.comparisonValue}>
-                      {formatCurrency(mc.calculation.monthlyPayment, settings.currency)}
-                    </Text>
-                  </View>
-                  <View style={styles.comparisonStat}>
-                    <Text variant="bodySmall" style={styles.comparisonLabel}>{t('totalInterest')}:</Text>
-                    <Text variant="bodyMedium" style={styles.comparisonValue}>
-                      {formatCurrency(mc.calculation.totalInterest, settings.currency)}
-                    </Text>
-                  </View>
-                </View>
-                {mc.id === 'mixed' && (
-                  <Text variant="bodySmall" style={styles.mixedNote}>
-                    * {t('afterFiveYears')}: {settings.currency === 'EUR' ? 'Euríbor + 0,65% (aprox. 4,28%)' : 'Variable rate applies'}
-                  </Text>
-                )}
-              </Card.Content>
-            </Card>
-          ))}
-        </Card.Content>
-      </Card>
     </ScrollView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -353,37 +266,6 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 4,
   },
-  mortgageTypeContainer: {
-    marginBottom: 16,
-  },
-  mortgageTypeCard: {
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  selectedMortgageType: {
-    borderColor: '#2563eb',
-    backgroundColor: '#eff6ff',
-  },
-  mortgageTypeContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  mortgageTypeInfo: {
-    flex: 1,
-  },
-  mortgageTypeDescription: {
-    color: '#6b7280',
-    marginTop: 4,
-  },
-  mortgageTypeRate: {
-    alignItems: 'center',
-  },
-  mortgageTypeLabel: {
-    color: '#6b7280',
-    fontSize: 10,
-  },
   segmentedContainer: {
     marginBottom: 16,
   },
@@ -419,54 +301,5 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontWeight: '500',
-  },
-  benefitsContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  benefitText: {
-    color: '#6b7280',
-    marginBottom: 4,
-  },
-  comparisonCard: {
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  comparisonHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  comparisonRate: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  colorIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  comparisonStats: {
-    gap: 8,
-  },
-  comparisonStat: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  comparisonLabel: {
-    color: '#6b7280',
-  },
-  comparisonValue: {
-    fontWeight: '500',
-  },
-  mixedNote: {
-    color: '#6b7280',
-    marginTop: 8,
-    fontStyle: 'italic',
   },
 });

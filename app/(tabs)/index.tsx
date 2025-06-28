@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { View, ScrollView, StyleSheet, Alert } from 'react-native';
 import { Text, Searchbar, Button, Menu, Chip, FAB } from 'react-native-paper';
-import { Ionicons } from '@expo/vector-icons';
-import { useStore } from '../store/useStore';
-import { useTranslation } from '../utils/translations';
-import { PropertyCard } from '../components/PropertyCard';
+import { Heart } from 'lucide-react-native';
+import { useStore } from '@/store/useStore';
+import { useTranslation } from '@/utils/translations';
+import { PropertyCard } from '@/components/PropertyCard';
 
-export const Properties: React.FC = () => {
+export default function PropertiesTab() {
   const {
     properties,
     searchTerm,
@@ -94,7 +94,7 @@ export const Properties: React.FC = () => {
         <Text variant="bodyMedium" style={styles.subtitle}>{t('manageAnalyze')}</Text>
         {favoritesCount > 0 && (
           <View style={styles.favoritesInfo}>
-            <Ionicons name="heart" size={16} color="#ef4444" />
+            <Heart size={16} color="#ef4444" />
             <Text variant="bodySmall" style={styles.favoritesText}>
               {favoritesCount} {favoritesCount === 1 ? t('favorite') : t('favorites')}
             </Text>
@@ -214,7 +214,6 @@ export const Properties: React.FC = () => {
         </ScrollView>
       ) : (
         <View style={styles.emptyState}>
-          <Ionicons name="search" size={48} color="#9ca3af" />
           <Text variant="titleMedium" style={styles.emptyTitle}>{t('noPropertiesFound')}</Text>
           <Text variant="bodyMedium" style={styles.emptySubtitle}>
             {t('adjustSearchCriteria')}
@@ -238,7 +237,7 @@ export const Properties: React.FC = () => {
       />
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {

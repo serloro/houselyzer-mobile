@@ -1,4 +1,4 @@
-import { Property, MarketData } from '../types';
+import { Property, MarketData } from '@/types';
 
 export const mockProperties: Property[] = [
   {

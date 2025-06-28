@@ -1,4 +1,4 @@
-import { MortgageCalculation } from '../types';
+import { MortgageCalculation } from '@/types';
 
 export const calculateMortgage = (
   homePrice: number,

@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Property, Settings, AppState } from '../types';
-import { mockProperties } from '../utils/mockData';
+import { Property, Settings, AppState } from '@/types';
+import { mockProperties } from '@/utils/mockData';
 
 interface StoreActions {
   addProperty: (property: Property) => void;
