@@ -32,6 +32,9 @@
     "plugins": [
       "expo-router"
     ],
-    "scheme": "houselyzer"
+    "scheme": "houselyzer",
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
