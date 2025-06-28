@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start",
-    "dev": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "build": "expo build",
-    "eject": "expo eject"
+    "start": "npx expo start",
+    "dev": "npx expo start",
+    "android": "npx expo start --android",
+    "ios": "npx expo start --ios",
+    "web": "npx expo start --web",
+    "build": "npx expo build",
+    "eject": "npx expo eject"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
@@ -19,7 +19,7 @@
     "date-fns": "^2.30.0",
     "expo": "~52.0.30",
     "expo-clipboard": "~7.1.4",
-    "expo-constants": "~17.1.6",
+    "expo-constants": "~17.0.8",
     "expo-document-picker": "~13.1.6",
     "expo-file-system": "~18.1.10",
     "expo-linking": "~7.1.5",
