@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert, useWindowDimensions } from 'react-native';
 import { Text, Card, Switch, Button, Menu, Divider, Snackbar } from 'react-native-paper';
 import { useStore } from '@/store/useStore';
 import { useTranslation } from '@/utils/translations';
@@ -7,6 +7,7 @@ import { useTranslation } from '@/utils/translations';
 export default function SettingsTab() {
   const { settings, updateSettings, clearData, clearMarketDataCache } = useStore();
   const t = useTranslation(settings.language);
+  const { width: screenWidth } = useWindowDimensions();
   const [languageMenuVisible, setLanguageMenuVisible] = useState(false);
   const [currencyMenuVisible, setCurrencyMenuVisible] = useState(false);
   const [measurementMenuVisible, setMeasurementMenuVisible] = useState(false);
@@ -190,7 +191,11 @@ export default function SettingsTab() {
               <Button
                 mode="contained"
                 onPress={handleClearMarketCache}
-                style={[styles.actionButton, { backgroundColor: '#f59e0b' }]}
+                style={[
+                  styles.actionButton, 
+                  { backgroundColor: '#f59e0b' },
+                  screenWidth < 400 && styles.fullWidthButton
+                ]}
                 icon="refresh"
               >
                 {t('clearCache')}
@@ -199,7 +204,11 @@ export default function SettingsTab() {
               <Button
                 mode="contained"
                 onPress={handleClearData}
-                style={[styles.actionButton, { backgroundColor: '#ef4444' }]}
+                style={[
+                  styles.actionButton, 
+                  { backgroundColor: '#ef4444' },
+                  screenWidth < 400 && styles.fullWidthButton
+                ]}
                 icon="delete"
               >
                 {t('clearAllData')}
@@ -254,6 +263,9 @@ const styles = StyleSheet.create({
   card: {
     margin: 16,
     marginTop: 0,
+    maxWidth: 600,
+    alignSelf: 'center',
+    width: '100%',
   },
   sectionTitle: {
     marginBottom: 16,
@@ -280,10 +292,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
   },
-  actionButton: {
-    flex: 1,
-    minWidth: '45%',
-  },
   dataManagementNote: {
     color: '#6b7280',
     textAlign: 'center',
@@ -294,5 +302,12 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     paddingVertical: 8,
+  },
+  actionButton: {
+    flex: 1,
+    minWidth: '45%',
+  },
+  fullWidthButton: {
+    minWidth: '100%',
   },
 });

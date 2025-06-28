@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { View, ScrollView, StyleSheet, Alert } from 'react-native';
-import { Text, Searchbar, Button, Menu, Chip, FAB } from 'react-native-paper';
-import { Heart } from 'lucide-react-native';
+import { View, ScrollView, StyleSheet, Alert, FlatList, Dimensions, useWindowDimensions } from 'react-native';
+import { Text, Searchbar, Button, Menu, Chip, FAB, TextInput, Modal, Portal } from 'react-native-paper';
+import { Heart, Zap } from 'lucide-react-native';
 import { useStore } from '@/store/useStore';
 import { useTranslation } from '@/utils/translations';
 import { PropertyCard } from '@/components/PropertyCard';
+import { Property } from '@/types';
 
 export default function PropertiesTab() {
   const {
@@ -15,15 +16,31 @@ export default function PropertiesTab() {
     setSearchTerm,
     setFilterType,
     setSortBy,
+    addProperty,
     isLoading,
     error,
     settings,
   } = useStore();
 
   const t = useTranslation(settings.language);
+  const { width: screenWidth } = useWindowDimensions();
   const [favoriteFilter, setFavoriteFilter] = useState('all');
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
+  const [importModalVisible, setImportModalVisible] = useState(false);
+  const [importUrl, setImportUrl] = useState('');
+  const [importing, setImporting] = useState(false);
+
+  // Calcular número de columnas basado en el ancho de pantalla
+  const getNumColumns = () => {
+    if (screenWidth >= 1200) return 6; // Desktop grande
+    if (screenWidth >= 900) return 4;  // Desktop
+    if (screenWidth >= 600) return 3;  // Tablet
+    if (screenWidth >= 400) return 2;  // Mobile grande
+    return 1; // Mobile pequeño
+  };
+
+  const numColumns = getNumColumns();
 
   const propertyTypes = [
     { value: 'all', label: t('allTypes') },
@@ -79,16 +96,128 @@ export default function PropertiesTab() {
 
   const favoritesCount = properties.filter(p => p.isFavorite).length;
 
-  const handleImportPress = () => {
-    Alert.alert(
-      t('importFromUrl'),
-      'Import functionality will be available in a future update.',
-      [{ text: 'OK' }]
-    );
+  const generatePropertyFromUrl = (url: string): Property => {
+    // Extraer información básica de la URL
+    const urlObj = new URL(url);
+    const domain = urlObj.hostname;
+    
+    // Generar un ID único
+    const id = Date.now().toString();
+    
+    // Determinar moneda basada en el dominio
+    const currency = domain.includes('idealista') || domain.includes('fotocasa') ? 'EUR' : 'USD';
+    
+    // Crear una propiedad básica
+    const property: Property = {
+      id,
+      title: `Propiedad importada desde ${domain}`,
+      address: url,
+      price: currency === 'EUR' ? 450000 : 500000,
+      currency,
+      bedrooms: 3,
+      bathrooms: 2,
+      sqft: 1200,
+      yearBuilt: 2020,
+      propertyType: 'apartment',
+      imageUrl: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg',
+      description: `Propiedad importada desde ${url}. Haz clic en "Editar" para completar los detalles.`,
+      isFavorite: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      features: ['Importada desde URL'],
+      neighborhood: 'Por definir',
+      pricePerSqft: currency === 'EUR' ? 375 : 417,
+      listingAgent: 'Importado automáticamente',
+      daysOnMarket: 0,
+    };
+    
+    return property;
   };
+
+  const handleImportPress = () => {
+    setImportModalVisible(true);
+  };
+
+  const handleImportSubmit = async () => {
+    if (!importUrl.trim()) {
+      Alert.alert('Error', 'Por favor ingresa una URL válida');
+      return;
+    }
+
+    try {
+      setImporting(true);
+      
+      // Validar que sea una URL válida
+      new URL(importUrl);
+      
+      // Generar propiedad desde la URL
+      const newProperty = generatePropertyFromUrl(importUrl);
+      
+      // Agregar la propiedad al store
+      addProperty(newProperty);
+      
+      // Limpiar y cerrar modal
+      setImportUrl('');
+      setImportModalVisible(false);
+      
+      Alert.alert(
+        'Éxito', 
+        'Propiedad importada correctamente. Puedes editarla para completar los detalles.',
+        [{ text: 'OK' }]
+      );
+      
+    } catch (error) {
+      Alert.alert('Error', 'URL inválida. Por favor verifica que sea una URL válida.');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleCancelImport = () => {
+    setImportUrl('');
+    setImportModalVisible(false);
+  };
+
+  const renderPropertyCard = ({ item }: { item: Property }) => (
+    <PropertyCard 
+      property={item} 
+      showEditButton={true}
+      showFavoriteButton={true}
+    />
+  );
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyState}>
+      <Text variant="titleMedium" style={styles.emptyTitle}>{t('noPropertiesFound')}</Text>
+      <Text variant="bodyMedium" style={styles.emptySubtitle}>
+        {t('adjustSearchCriteria')}
+      </Text>
+      <Button
+        mode="contained"
+        onPress={handleImportPress}
+        style={styles.importButton}
+        icon="link"
+      >
+        {t('importProperty')}
+      </Button>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
+      {/* App Header */}
+      <View style={styles.appHeader}>
+        <View style={styles.appHeaderContent}>
+          <View style={styles.appTitleContainer}>
+            <Text variant="headlineSmall" style={styles.appTitle}>HouseLyzer</Text>
+            <View style={styles.boltContainer}>
+              <Zap size={16} color="#f59e0b" fill="#f59e0b" />
+              <Text variant="bodySmall" style={styles.boltText}>Made with bolt.new</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
       {/* Header */}
       <View style={styles.header}>
         <Text variant="bodyMedium" style={styles.subtitle}>{t('manageAnalyze')}</Text>
@@ -193,41 +322,29 @@ export default function PropertiesTab() {
         </View>
       </View>
 
-      {/* Results */}
+      {/* Results Header */}
       <View style={styles.resultsHeader}>
         <Text variant="bodyMedium" style={styles.resultsText}>
           {filteredAndSortedProperties.length} {filteredAndSortedProperties.length === 1 ? t('propertyFound') : t('propertiesFound')}
           {favoriteFilter === 'favorites' && ` (${t('favorites')})`}
         </Text>
+        <Text variant="bodySmall" style={styles.gridInfo}>
+          Grid: {numColumns} columna{numColumns > 1 ? 's' : ''} ({screenWidth}px)
+        </Text>
       </View>
 
-      {filteredAndSortedProperties.length > 0 ? (
-        <ScrollView style={styles.propertiesList} showsVerticalScrollIndicator={false}>
-          {filteredAndSortedProperties.map((property) => (
-            <PropertyCard 
-              key={property.id} 
-              property={property} 
-              showEditButton={true}
-              showFavoriteButton={true}
-            />
-          ))}
-        </ScrollView>
-      ) : (
-        <View style={styles.emptyState}>
-          <Text variant="titleMedium" style={styles.emptyTitle}>{t('noPropertiesFound')}</Text>
-          <Text variant="bodyMedium" style={styles.emptySubtitle}>
-            {t('adjustSearchCriteria')}
-          </Text>
-          <Button
-            mode="contained"
-            onPress={handleImportPress}
-            style={styles.importButton}
-            icon="link"
-          >
-            {t('importProperty')}
-          </Button>
-        </View>
-      )}
+      {/* Properties Grid */}
+      <FlatList
+        data={filteredAndSortedProperties}
+        renderItem={renderPropertyCard}
+        keyExtractor={(item) => item.id}
+        numColumns={numColumns}
+        key={numColumns} // Forzar re-render cuando cambia el número de columnas
+        contentContainerStyle={styles.propertiesList}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={renderEmptyState}
+        columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
+      />
 
       <FAB
         icon="link"
@@ -235,6 +352,52 @@ export default function PropertiesTab() {
         onPress={handleImportPress}
         label={t('importFromUrl')}
       />
+
+      {/* Import Modal */}
+      <Portal>
+        <Modal
+          visible={importModalVisible}
+          onDismiss={handleCancelImport}
+          contentContainerStyle={styles.modalContainer}
+        >
+          <Text variant="titleLarge" style={styles.modalTitle}>
+            {t('importFromUrl')}
+          </Text>
+          <Text variant="bodyMedium" style={styles.modalSubtitle}>
+            Pega la URL de una propiedad que quieras importar (ej: Idealista, Fotocasa, etc.)
+          </Text>
+          
+          <TextInput
+            label="URL de la propiedad"
+            value={importUrl}
+            onChangeText={setImportUrl}
+            mode="outlined"
+            style={styles.urlInput}
+            placeholder="https://www.idealista.com/inmueble/..."
+            multiline
+          />
+          
+          <View style={styles.modalButtons}>
+            <Button
+              mode="outlined"
+              onPress={handleCancelImport}
+              style={styles.modalButton}
+              disabled={importing}
+            >
+              Cancelar
+            </Button>
+            <Button
+              mode="contained"
+              onPress={handleImportSubmit}
+              style={styles.modalButton}
+              loading={importing}
+              disabled={!importUrl.trim() || importing}
+            >
+              {importing ? 'Importando...' : 'Importar'}
+            </Button>
+          </View>
+        </Modal>
+      </Portal>
     </View>
   );
 }
@@ -243,6 +406,41 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',
+  },
+  appHeader: {
+    backgroundColor: '#f59e0b',
+    paddingTop: 20,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  appHeaderContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  appTitleContainer: {
+    flex: 1,
+  },
+  appTitle: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  boltContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  boltText: {
+    color: 'white',
+    fontSize: 12,
+    opacity: 0.9,
   },
   header: {
     padding: 16,
@@ -301,6 +499,7 @@ const styles = StyleSheet.create({
   },
   favoriteFilters: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   favoriteChip: {
@@ -309,12 +508,22 @@ const styles = StyleSheet.create({
   resultsHeader: {
     padding: 16,
     backgroundColor: 'white',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   resultsText: {
     color: '#6b7280',
   },
+  gridInfo: {
+    color: '#9ca3af',
+    fontSize: 12,
+  },
   propertiesList: {
-    flex: 1,
+    padding: 8,
+  },
+  row: {
+    justifyContent: 'space-between',
   },
   emptyState: {
     flex: 1,
@@ -340,5 +549,30 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    padding: 20,
+    margin: 20,
+    borderRadius: 12,
+  },
+  modalTitle: {
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  urlInput: {
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
   },
 });

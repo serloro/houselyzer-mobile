@@ -35,7 +35,7 @@ export const useStore = create<AppState & StoreActions>()(
   persist(
     (set, get) => ({
       // State
-      properties: mockProperties,
+      properties: [],
       favorites: [],
       settings: defaultSettings,
       searchTerm: '',
