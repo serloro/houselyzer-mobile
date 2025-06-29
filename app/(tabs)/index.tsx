@@ -8,11 +8,6 @@ import { PropertyCard } from '@/components/PropertyCard';
 import { ImportModal } from '@/components/ImportModal';
 import { Property } from '@/types';
 
-// Environment variables (these would be set in your Expo app)
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
-
 export default function PropertiesTab() {
   const {
     properties,
@@ -287,14 +282,11 @@ export default function PropertiesTab() {
         label={t('importFromUrl')}
       />
 
-      {/* Enhanced Import Modal */}
+      {/* Simplified Import Modal */}
       <ImportModal
         visible={importModalVisible}
         onDismiss={() => setImportModalVisible(false)}
         onSuccess={handleImportSuccess}
-        supabaseUrl={SUPABASE_URL}
-        supabaseAnonKey={SUPABASE_ANON_KEY}
-        openaiApiKey={OPENAI_API_KEY}
       />
 
       {/* Success Snackbar */}
