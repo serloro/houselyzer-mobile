@@ -10,7 +10,7 @@ import {
   Card,
   Chip
 } from 'react-native-paper';
-import { CheckCircle, AlertCircle, Loader, Globe, Brain, Database } from 'lucide-react-native';
+import { CircleCheck as CheckCircle, CircleAlert as AlertCircle, Loader, Globe, Brain, Database } from 'lucide-react-native';
 import { Property } from '@/types';
 
 interface ImportModalProps {
