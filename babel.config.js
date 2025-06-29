@@ -15,12 +15,5 @@ module.exports = function(api) {
       // Ensure reanimated plugin is last
       'react-native-reanimated/plugin',
     ],
-    env: {
-      production: {
-        plugins: [
-          'react-native-reanimated/plugin',
-        ],
-      },
-    },
   };
 };
