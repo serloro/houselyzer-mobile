@@ -1,11 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { View, ScrollView, StyleSheet, Alert, FlatList, Dimensions, useWindowDimensions } from 'react-native';
-import { Text, Searchbar, Button, Menu, Chip, FAB, TextInput, Modal, Portal } from 'react-native-paper';
+import { Text, Searchbar, Button, Menu, Chip, FAB, Snackbar } from 'react-native-paper';
 import { Heart, Zap } from 'lucide-react-native';
 import { useStore } from '@/store/useStore';
 import { useTranslation } from '@/utils/translations';
 import { PropertyCard } from '@/components/PropertyCard';
+import { ImportModal } from '@/components/ImportModal';
 import { Property } from '@/types';
+
+// Environment variables (these would be set in your Expo app)
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const OPENAI_API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
 
 export default function PropertiesTab() {
   const {
@@ -28,8 +34,8 @@ export default function PropertiesTab() {
   const [filterMenuVisible, setFilterMenuVisible] = useState(false);
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
   const [importModalVisible, setImportModalVisible] = useState(false);
-  const [importUrl, setImportUrl] = useState('');
-  const [importing, setImporting] = useState(false);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   // Calcular número de columnas basado en el ancho de pantalla
   const getNumColumns = () => {
@@ -96,86 +102,14 @@ export default function PropertiesTab() {
 
   const favoritesCount = properties.filter(p => p.isFavorite).length;
 
-  const generatePropertyFromUrl = (url: string): Property => {
-    // Extraer información básica de la URL
-    const urlObj = new URL(url);
-    const domain = urlObj.hostname;
-    
-    // Generar un ID único
-    const id = Date.now().toString();
-    
-    // Determinar moneda basada en el dominio
-    const currency = domain.includes('idealista') || domain.includes('fotocasa') ? 'EUR' : 'USD';
-    
-    // Crear una propiedad básica
-    const property: Property = {
-      id,
-      title: `Propiedad importada desde ${domain}`,
-      address: url,
-      price: currency === 'EUR' ? 450000 : 500000,
-      currency,
-      bedrooms: 3,
-      bathrooms: 2,
-      sqft: 1200,
-      yearBuilt: 2020,
-      propertyType: 'apartment',
-      imageUrl: 'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg',
-      description: `Propiedad importada desde ${url}. Haz clic en "Editar" para completar los detalles.`,
-      isFavorite: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      features: ['Importada desde URL'],
-      neighborhood: 'Por definir',
-      pricePerSqft: currency === 'EUR' ? 375 : 417,
-      listingAgent: 'Importado automáticamente',
-      daysOnMarket: 0,
-    };
-    
-    return property;
+  const handleImportSuccess = (property: Property) => {
+    addProperty(property);
+    setSnackbarMessage('¡Propiedad importada exitosamente!');
+    setSnackbarVisible(true);
   };
 
   const handleImportPress = () => {
     setImportModalVisible(true);
-  };
-
-  const handleImportSubmit = async () => {
-    if (!importUrl.trim()) {
-      Alert.alert('Error', 'Por favor ingresa una URL válida');
-      return;
-    }
-
-    try {
-      setImporting(true);
-      
-      // Validar que sea una URL válida
-      new URL(importUrl);
-      
-      // Generar propiedad desde la URL
-      const newProperty = generatePropertyFromUrl(importUrl);
-      
-      // Agregar la propiedad al store
-      addProperty(newProperty);
-      
-      // Limpiar y cerrar modal
-      setImportUrl('');
-      setImportModalVisible(false);
-      
-      Alert.alert(
-        'Éxito', 
-        'Propiedad importada correctamente. Puedes editarla para completar los detalles.',
-        [{ text: 'OK' }]
-      );
-      
-    } catch (error) {
-      Alert.alert('Error', 'URL inválida. Por favor verifica que sea una URL válida.');
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const handleCancelImport = () => {
-    setImportUrl('');
-    setImportModalVisible(false);
   };
 
   const renderPropertyCard = ({ item }: { item: Property }) => (
@@ -353,51 +287,25 @@ export default function PropertiesTab() {
         label={t('importFromUrl')}
       />
 
-      {/* Import Modal */}
-      <Portal>
-        <Modal
-          visible={importModalVisible}
-          onDismiss={handleCancelImport}
-          contentContainerStyle={styles.modalContainer}
-        >
-          <Text variant="titleLarge" style={styles.modalTitle}>
-            {t('importFromUrl')}
-          </Text>
-          <Text variant="bodyMedium" style={styles.modalSubtitle}>
-            Pega la URL de una propiedad que quieras importar (ej: Idealista, Fotocasa, etc.)
-          </Text>
-          
-          <TextInput
-            label="URL de la propiedad"
-            value={importUrl}
-            onChangeText={setImportUrl}
-            mode="outlined"
-            style={styles.urlInput}
-            placeholder="https://www.idealista.com/inmueble/..."
-            multiline
-          />
-          
-          <View style={styles.modalButtons}>
-            <Button
-              mode="outlined"
-              onPress={handleCancelImport}
-              style={styles.modalButton}
-              disabled={importing}
-            >
-              Cancelar
-            </Button>
-            <Button
-              mode="contained"
-              onPress={handleImportSubmit}
-              style={styles.modalButton}
-              loading={importing}
-              disabled={!importUrl.trim() || importing}
-            >
-              {importing ? 'Importando...' : 'Importar'}
-            </Button>
-          </View>
-        </Modal>
-      </Portal>
+      {/* Enhanced Import Modal */}
+      <ImportModal
+        visible={importModalVisible}
+        onDismiss={() => setImportModalVisible(false)}
+        onSuccess={handleImportSuccess}
+        supabaseUrl={SUPABASE_URL}
+        supabaseAnonKey={SUPABASE_ANON_KEY}
+        openaiApiKey={OPENAI_API_KEY}
+      />
+
+      {/* Success Snackbar */}
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={4000}
+        style={styles.snackbar}
+      >
+        {snackbarMessage}
+      </Snackbar>
     </View>
   );
 }
@@ -550,29 +458,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  modalContainer: {
-    backgroundColor: 'white',
-    padding: 20,
-    margin: 20,
-    borderRadius: 12,
-  },
-  modalTitle: {
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  modalSubtitle: {
-    color: '#6b7280',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  urlInput: {
-    marginBottom: 20,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalButton: {
-    flex: 1,
+  snackbar: {
+    backgroundColor: '#10b981',
   },
 });
